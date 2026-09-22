@@ -1,6 +1,8 @@
-from sqlalchemy import Column, String, Integer, ForeignKey, JSON
+from sqlalchemy import JSON, Column, ForeignKey, Integer, String
 from sqlalchemy.orm import relationship
+
 from src.database import Base
+
 
 class Course(Base):
     __tablename__ = "courses"
@@ -9,12 +11,15 @@ class Course(Base):
     title = Column(String, nullable=False)
     credits = Column(Integer, nullable=False)
     description = Column(String, nullable=True)
-    
+
     # Store prerequisites as a simple JSON array
     prerequisites = Column(JSON, default=list)
-    
+
     # Relationship to timeslots
-    timeslots = relationship("Timeslot", back_populates="course", cascade="all, delete-orphan")
+    timeslots = relationship(
+        "Timeslot", back_populates="course", cascade="all, delete-orphan"
+    )
+
 
 class Timeslot(Base):
     __tablename__ = "timeslots"

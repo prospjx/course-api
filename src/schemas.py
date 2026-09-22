@@ -1,25 +1,25 @@
-from pydantic import BaseModel
-from typing import List, Optional
+from pydantic import BaseModel, ConfigDict
+
 
 class TimeslotBase(BaseModel):
     day: str
     start_time: str
     end_time: str
-    location: Optional[str] = None
+    location: str | None = None
+
 
 class TimeslotResponse(TimeslotBase):
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
+
 
 class CourseBase(BaseModel):
     course_id: str
     title: str
     credits: int
-    description: Optional[str] = None
-    prerequisites: List[str] = []
+    description: str | None = None
+    prerequisites: list[str] = []
+
 
 class CourseResponse(CourseBase):
-    timeslots: List[TimeslotResponse] = []
-    
-    class Config:
-        from_attributes = True
+    timeslots: list[TimeslotResponse] = []
+    model_config = ConfigDict(from_attributes=True)
