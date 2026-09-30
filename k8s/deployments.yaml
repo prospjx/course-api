@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: courseapi
-          image: prospjx/courseapi:latest
+          image: ghcr.io/prospjx/course-api:latest
           ports:
             - containerPort: 8001
           env:
