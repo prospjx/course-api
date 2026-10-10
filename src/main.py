@@ -1,6 +1,9 @@
+import time
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, Response
+from fastapi.middleware.cors import CORSMiddleware
+from prometheus_client import CONTENT_TYPE_LATEST, Counter, Histogram, generate_latest
 
 from src.database import Base, SessionLocal, engine
 from src.routers import courses
@@ -8,6 +11,17 @@ from src.seed import seed_db
 
 # Create DB tables
 Base.metadata.create_all(bind=engine)
+
+REQUEST_COUNT = Counter(
+    "http_requests_total",
+    "Total HTTP requests",
+    ["method", "handler", "status"],
+)
+REQUEST_LATENCY = Histogram(
+    "http_request_duration_seconds",
+    "HTTP request latency in seconds",
+    ["method", "handler"],
+)
 
 
 @asynccontextmanager
@@ -20,8 +34,6 @@ async def lifespan(app: FastAPI):
         db.close()
     yield
 
-
-from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI(
     title="Course API",
@@ -37,6 +49,31 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.middleware("http")
+async def prometheus_middleware(request: Request, call_next):
+    start_time = time.time()
+    try:
+        response = await call_next(request)
+        status_code = str(response.status_code)
+    except Exception:
+        status_code = "500"
+        raise
+    finally:
+        duration = time.time() - start_time
+        path = request.url.path
+        REQUEST_COUNT.labels(
+            method=request.method, handler=path, status=status_code
+        ).inc()
+        REQUEST_LATENCY.labels(method=request.method, handler=path).observe(duration)
+    return response
+
+
+@app.get("/metrics")
+def metrics():
+    return Response(content=generate_latest(), media_type=CONTENT_TYPE_LATEST)
+
 
 app.include_router(courses.router, prefix="/api/v1")
 
